@@ -25,3 +25,7 @@ Nothing is built in. In Teacher view, open **Schedule**, then go to **Weekly sch
 ## Student data
 
 Sign-out logs are stored in the browser on that computer. Backups and exports contain student names and IDs: keep them off shared drives and never commit them. `.gitignore` blocks `.json`, `.csv` and Excel files.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
