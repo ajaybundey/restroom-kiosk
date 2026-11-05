@@ -1,0 +1,8 @@
+.DS_Store
+
+# Student data exports (rosters, grades, seat backups) must never be committed
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.json
