@@ -17,6 +17,7 @@ Double-click `Restroom_Kiosk.html` to open it in a browser. It needs no install 
 | `setup-video.mp4` | Teacher setup video, about 3½ minutes |
 | `student-guide.pdf` | One-page student guide, to print and post by the kiosk |
 | `student-video.mp4` | Student video, about 1 minute |
+| `tests/autosave_test.py` | Checks that Settings save on Lock and on a tab switch: `python3 tests/autosave_test.py` (needs Chrome) |
 
 ## Bell schedule
 

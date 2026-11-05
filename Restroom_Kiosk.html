@@ -3202,7 +3202,8 @@ const RosterImport = (() => {
       const inputs = {};
       const colorField = (key, id, label) => {
         inputs[key] = el('input', { type: 'color', id, value: draft[key], class: 'look-color' });
-        inputs[key].addEventListener('input', () => { draft.preset = 'custom'; draft[key] = inputs[key].value.toLowerCase(); checkRadio('custom'); draw(); apply(); });
+        inputs[key].addEventListener('input', () => { draft.preset = 'custom'; draft[key] = inputs[key].value.toLowerCase(); checkRadio('custom'); draw(); });
+        inputs[key].addEventListener('change', () => apply()); // save once the color is let go, not on every step of a drag
         return el('label', { class: 'field-label look-color-field' }, label, inputs[key]);
       };
       const customBox = el('div', { class: 'look-custom' },
@@ -3300,7 +3301,7 @@ const RosterImport = (() => {
       this.voiceNote = el('p', { class: 'field-hint', 'aria-live': 'polite' });
       this.fillVoices(st.voice);
       const err = el('p', { class: 'form-error', role: 'alert' });
-      const bad = msg => { err.textContent = msg; err.scrollIntoView({ block: 'center' }); return false; };
+      const bad = msg => { err.textContent = msg; this.savedNote.textContent = ''; return false; };
       this.savedNote = el('p', { class: 'field-hint', 'aria-live': 'polite' }, 'Changes save as you make them.');
       const save = (quiet = false) => {
         const o = Number(overdue.value), a = Number(auto.value), w = Number(limit.value), lw = Number(lineWarn.value);
