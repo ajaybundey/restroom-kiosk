@@ -13,8 +13,10 @@ Double-click `Restroom_Kiosk.html` to open it in a browser. It needs no install 
 | File | What it is |
 |---|---|
 | `Restroom_Kiosk.html` | The kiosk |
-| `Student Guide_ Restroom Pass Kiosk How to Use It.pdf` | Student guide |
-| `restroom-kiosk-student-video-v2.mp4` | Student video |
+| `teacher-guide.docx` | Teacher guide: setup, step by step, and everyday use (Word) |
+| `setup-video.mp4` | Teacher setup video, about 3 minutes |
+| `student-guide.pdf` | One-page student guide, to print and post by the kiosk |
+| `student-video.mp4` | Student video, about 1 minute |
 
 ## Bell schedule
 
