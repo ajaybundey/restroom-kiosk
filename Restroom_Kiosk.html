@@ -163,16 +163,16 @@ p { margin: 0; }
 .tag-wrap.swing { animation: swing 1.1s cubic-bezier(.3, .6, .4, 1); }
 
 /* Up next */
-.line-heading { margin: 4px 0 4px; font: 700 22px/1.2 var(--sign); }
+.line-heading { margin: 4px 0 4px; font: 700 clamp(24px, 3.4vh, 34px)/1.2 var(--sign); }
 .line-list { list-style: none; margin: 0; padding: 0; }
 .line-list li {
   display: flex; align-items: baseline; gap: 14px;
   padding: 7px 4px; border-bottom: 2px solid var(--wall-deep);
-  font: 600 clamp(21px, 3.3vh, 28px)/1.2 var(--sign);
+  font: 600 clamp(28px, 4.8vh, 48px)/1.15 var(--sign);
 }
 .line-num { min-width: 1.3em; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .line-name { overflow-wrap: anywhere; }
-.line-note { margin: 6px 4px 0; color: var(--ink-soft); }
+.line-note { margin: 6px 4px 0; color: var(--ink-soft); font-size: clamp(18px, 2.4vh, 24px); }
 
 /* Chalkboard keypad */
 .board {
@@ -257,7 +257,7 @@ p { margin: 0; }
 
 .board-result {
   flex: 1; min-height: 300px;
-  display: flex; flex-direction: column; justify-content: center; gap: 10px;
+  display: flex; flex-direction: column; justify-content: flex-start; gap: 10px;
 }
 .result-title { font: 700 clamp(30px, 5vh, 44px)/1.12 var(--sign); overflow-wrap: anywhere; }
 .result-body { white-space: pre-line; font-size: 22px; }
@@ -272,11 +272,13 @@ p { margin: 0; }
 .result-btn:active { transform: translateY(3px); box-shadow: none; }
 
 @media (max-width: 880px) {
+  /* an upright tablet: the line sits beside the pass, so students can still see it above the keypad */
   .kiosk {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: auto;
-    grid-template-areas: "pass" "board" "line";
+    grid-template-areas: "pass line" "board board";
   }
+  .line { padding-top: clamp(30px, 6vh, 60px); }
   .board { align-self: start; }
   .board-result { min-height: 240px; }
 }
@@ -288,7 +290,7 @@ p { margin: 0; }
 
 /* ---------- Teacher view ---------- */
 .teacher { flex: 1; padding: 0 var(--gutter) 48px; font-size: 16px; line-height: 1.5; }
-.t-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-bottom: 14px; }
+.t-head { max-width: 1120px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-bottom: 14px; }
 .t-title { margin: 0; font: 700 26px/1.2 var(--sign); }
 .t-tabs { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
 .t-tab {
@@ -309,6 +311,13 @@ p { margin: 0; }
   margin: 0 0 14px;
 }
 .sheet-title { margin: 0 0 10px; font: 700 21px/1.25 var(--sign); }
+/* folded sections: occasional controls stay out of the way until opened */
+.fold > summary { cursor: pointer; font: 700 21px/1.25 var(--sign); }
+.fold > summary::marker { color: var(--ink-soft); }
+.fold[open] > summary { margin-bottom: 10px; }
+.fold-sub { margin-top: 14px; }
+.sheet-sub { margin: 0 0 4px; font: 700 17px/1.3 var(--sign); }
+.fold-sub > summary { font-size: 17px; }
 .sheet p + p { margin-top: 8px; }
 .muted { color: var(--ink-soft); }
 .small { font-size: 14px; }
@@ -399,6 +408,7 @@ textarea.field { width: 100%; min-height: 150px; resize: vertical; font: 15px/1.
 }
 .escort-toggle:hover { background: var(--wall); }
 .escort-toggle[aria-pressed="true"] { background: var(--tardy); border-color: var(--tardy); color: #fff; }
+.limit-toggle[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
 .log tr.is-escort td { background: #FBEDEB; }
 .hold-box { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); }
 .hold-box .check { flex-wrap: wrap; row-gap: 6px; }
@@ -1116,6 +1126,7 @@ const RosterImport = (() => {
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
     return h ? `${h}:${pad2(m)}:${pad2(sec)}` : `${m}:${pad2(sec)}`;
   }
+  const fmtOut = ms => (ms < MIN ? '<1 min' : `${Math.floor(ms / MIN)} min`); // time out or waiting; "9:03" next to a clock reads as 9:03 AM
   const fmtMinutes = ms => (Math.round(ms / 6000) / 10).toFixed(1);
   const fmtSize = n => (n < 1024 ? `${n} bytes` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`);
   const hhmm = ms => { const d = new Date(ms); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
@@ -1995,7 +2006,7 @@ const RosterImport = (() => {
     } else {
       tag.dataset.state = 'free';
       const hold = ready ? holdState(s, now()) : null;
-      $('#tagMain').textContent = !ready ? 'Not ready' : hold ? (hold.kind === 'start' ? 'Not yet' : 'Queue Closed') : 'Available';
+      $('#tagMain').textContent = !ready ? 'Not ready' : hold ? (hold.kind === 'start' ? 'Not yet' : 'Line closed') : 'Available';
       $('#tagTimer').hidden = true;
       $('#tagSub').hidden = !hold;
       $('#tagSub').textContent = hold ? (hold.kind === 'start' ? holdStartText(s, hold) : holdEndText(s)) : '';
@@ -2028,7 +2039,7 @@ const RosterImport = (() => {
     if (!out) return;
     const ms = t - out.leftAt;
     const over = ms >= state.settings.overdueMin * MIN;
-    $('#tagTimer').textContent = fmtElapsed(ms);
+    $('#tagTimer').textContent = fmtOut(ms);
     $('#tag').classList.toggle('is-overdue', over);
     $('#tagFlag').hidden = !over;
     $('#tagFlag').textContent = `Over ${state.settings.overdueMin} minutes`;
@@ -2157,24 +2168,24 @@ const RosterImport = (() => {
     });
     const done = { label: 'Done', kind: 'primary', onClick: dismissResult };
     if (student.escort) { // no name on this card: classmates can see the screen
-      showResult({ tone: 'error', title: 'See your teacher to call for an escort.',
+      showResult({ tone: 'error', title: 'See your teacher first.', body: 'Your teacher will call for an escort.',
         actions: [done, overrideFor('on escort', `${who} is on escort. Approve once the escort is here.`)] });
       return;
     }
     if (schedOn() && !student.period) {
-      showResult({ tone: 'error', title: 'You don\u2019t have a class period yet.', body: 'The roster has no class period for you, so you can\u2019t sign out while class schedules are on. Ask your teacher.',
+      showResult({ tone: 'error', title: 'You can\u2019t sign out right now.', body: 'The roster doesn\u2019t have a class period for you yet. Ask your teacher.',
         actions: [done, overrideFor('no class period on the roster')] });
       return;
     }
     if (schedOn() && (!current || !hasPeriod(student, current.period))) {
-      showResult({ tone: 'error', title: current ? `It is Period ${current.period}.` : 'Sign-outs are paused.',
-        body: current ? 'Only students in the current period can join. Ask your teacher if your class is incorrect.' : 'You can sign out during your scheduled class. Students already out can still sign back in.',
+      showResult({ tone: 'error', title: 'You can\u2019t sign out right now.',
+        body: current ? `It\u2019s Period ${current.period}, and you\u2019re in Period ${periodList(student.period).join(' or ')}. Ask your teacher if that\u2019s wrong.` : 'Sign-outs are only open during your class. If you\u2019re out with the pass, you can still sign back in.',
         actions: [done, overrideFor(current ? `during Period ${current.period} (roster says Period ${periodList(student.period).join(' or ')})` : 'outside class time')] });
       return;
     }
     const hold = holdState(state, now());
     if (hold && hold.kind === 'end') {
-      showResult({ tone: 'error', title: 'Queue Closed.', body: holdEndText(state),
+      showResult({ tone: 'error', title: 'The line is closed.', body: holdEndText(state) + ' No one new can get in line.',
         actions: [done, overrideFor(`last ${state.schedule.holdMin} minutes of Period ${hold.period.period}`)] });
       return;
     }
@@ -2553,7 +2564,12 @@ const RosterImport = (() => {
     armTeacherIdle();
     render();
   }
+  // A Settings box still being typed in saves before its tab goes away (a tab switch, Lock, or the idle lock).
+  function saveTypedSetting() {
+    if (currentTab === tabSettings && $('#tBody').contains(document.activeElement)) tabSettings.save(true);
+  }
   function lockTeacher() {
+    saveTypedSetting();
     teacherUnlocked = false;
     clearTimeout(teacherIdleTimer);
     hideIdleWarning();
@@ -2814,7 +2830,7 @@ const RosterImport = (() => {
           el('p', { class: 'now-name' }, out.name, escortChip(out), out.override ? el('span', { class: 'chip chip-quiet' }, 'Teacher override') : null),
           el('p', { class: 'now-meta' }, whoMeta(out)),
           el('p', { class: 'now-time' }, `Left at ${fmtTime(out.leftAt)}. Out for `,
-            el('strong', { 'data-since': out.leftAt }, fmtElapsed(t - out.leftAt)), '.',
+            el('strong', { 'data-since': out.leftAt }, fmtOut(t - out.leftAt)), '.',
             el('span', { class: 'chip chip-alert', 'data-overdue-from': out.leftAt, hidden: t - out.leftAt < state.settings.overdueMin * MIN },
               `Over ${state.settings.overdueMin} minutes`)),
           tripNote(out, t, false),
@@ -2841,7 +2857,7 @@ const RosterImport = (() => {
             el('div', {},
               el('p', { class: 't-line-name' }, r.name, escortChip(r), r.override ? el('span', { class: 'chip chip-quiet' }, 'Teacher override') : null),
               el('p', { class: 'small muted' }, [whoMeta(r), `joined at ${fmtTime(r.joinedAt)}`].filter(Boolean).join(', '),
-                ', waiting ', el('span', { 'data-since': r.joinedAt }, fmtElapsed(t - r.joinedAt))),
+                ', waiting ', el('span', { 'data-since': r.joinedAt }, fmtOut(t - r.joinedAt))),
               tripNote(r, t, true))),
           el('div', { class: 'btn-row' },
             i > 0 ? btn('Move to front', () => moveToFront(r.id), 'small', `Move ${r.name} to the front of the line`) : null,
@@ -3126,7 +3142,7 @@ const RosterImport = (() => {
           el('td', {}, r.id),
           el('td', {}, r.name),
           el('td', {}, el('input', {
-            type: 'text', class: 'field pref-box', maxlength: 30, value: r.preferred || '', placeholder: firstName(r.name),
+            type: 'text', class: 'field pref-box', maxlength: 30, value: r.preferred || '',
             autocomplete: 'off', spellcheck: 'false', 'aria-label': `Preferred name for ${r.name}`,
             onchange: e => savePreferred(r.id, e.target),
           })),
@@ -3135,10 +3151,10 @@ const RosterImport = (() => {
             type: 'button', class: 'escort-toggle', 'aria-pressed': String(!!r.escort), 'aria-label': `On escort: ${r.name}`, 'data-refocus': 'esc:' + r.id,
             onclick: () => mutate(s => { const x = s.roster.find(y => y.id === r.id); if (!x) return false; x.escort = !x.escort; }),
           }, r.escort ? 'On escort' : 'Off')),
-          el('td', {}, el('label', { class: 'check' }, el('input', {
-            type: 'checkbox', checked: r.noLimit, 'aria-label': `No weekly limit for ${r.name}`, 'data-no-limit-for': r.id, 'data-refocus': 'lim:' + r.id,
-            onchange: e => { const v = e.target.checked; mutate(s => { const x = s.roster.find(y => y.id === r.id); if (!x) return false; x.noLimit = v; }); },
-          }))),
+          el('td', {}, el('button', {
+            type: 'button', class: 'escort-toggle limit-toggle', 'aria-pressed': String(!!r.noLimit), 'aria-label': `No weekly limit: ${r.name}`, 'data-no-limit-for': r.id, 'data-refocus': 'lim:' + r.id,
+            onclick: () => mutate(s => { const x = s.roster.find(y => y.id === r.id); if (!x) return false; x.noLimit = !x.noLimit; }),
+          }, r.noLimit ? 'No limit' : 'Off')),
           el('td', {}, btn('Remove', () => confirmRemoveStudent(r.id), 'small', `Remove ${r.name} from the roster`))))))));
     },
   };
@@ -3176,7 +3192,7 @@ const RosterImport = (() => {
             el('div', { class: 'lp-left' },
               el('div', { class: 'lp-tag' }, el('span', { class: 'lp-hole' }),
                 el('p', { class: 'lp-label' }, state.settings.passLabel), el('p', { class: 'lp-name' }, 'Ana L.'),
-                el('p', { class: 'lp-timer' }, '3:42'), el('p', { class: 'lp-sub' }, 'Left at 10:38 AM')),
+                el('p', { class: 'lp-timer' }, '3 min'), el('p', { class: 'lp-sub' }, 'Left at 10:38 AM')),
               el('p', { class: 'lp-up' }, 'Up next'), el('p', { class: 'lp-line' }, '1  Ben C.')),
             el('div', { class: 'lp-board' },
               el('p', { class: 'lp-prompt' }, 'Type your student ID'), el('p', { class: 'lp-hint' }, 'Period 2 until 11:14 AM.'),
@@ -3186,17 +3202,17 @@ const RosterImport = (() => {
       const inputs = {};
       const colorField = (key, id, label) => {
         inputs[key] = el('input', { type: 'color', id, value: draft[key], class: 'look-color' });
-        inputs[key].addEventListener('input', () => { draft.preset = 'custom'; draft[key] = inputs[key].value.toLowerCase(); checkRadio('custom'); draw(); });
+        inputs[key].addEventListener('input', () => { draft.preset = 'custom'; draft[key] = inputs[key].value.toLowerCase(); checkRadio('custom'); draw(); apply(); });
         return el('label', { class: 'field-label look-color-field' }, label, inputs[key]);
       };
       const customBox = el('div', { class: 'look-custom' },
         colorField('wall', 'lookWall', 'Background'), colorField('board', 'lookBoard', 'Keypad panel'), colorField('pass', 'lookPass', 'Pass'));
       const msg = el('p', { class: 'form-error', role: 'alert' });
-      const useBtn = btn('Use this look', () => {
+      const apply = () => { // the kiosk takes the look as soon as it is readable
+        if (draft.preset === 'custom' && lookProblem(draft)) return;
         const next = draft.preset === 'custom' ? cleanLook({ preset: 'custom', wall: draft.wall, board: draft.board, pass: draft.pass }) : { preset: draft.preset };
         mutate(s => { s.settings.look = next; });
-        toast('Look saved.');
-      }, 'primary');
+      };
       const resetBtn = btn('Back to the original look', () => {
         Object.assign(draft, { preset: 'hallway' }, lookColors({ preset: 'hallway' }));
         checkRadio('hallway'); syncInputs(); draw();
@@ -3214,7 +3230,7 @@ const RosterImport = (() => {
         const v = e.target.value;
         if (v === 'custom') draft.preset = 'custom';
         else Object.assign(draft, { preset: v }, lookColors({ preset: v }));
-        syncInputs(); draw();
+        syncInputs(); draw(); apply();
       });
       const checkRadio = v => { const r = cards.querySelector(`input[value="${v}"]`); if (r) r.checked = true; };
       const syncInputs = () => ['wall', 'board', 'pass'].forEach(k => { inputs[k].value = draft[k]; });
@@ -3222,15 +3238,14 @@ const RosterImport = (() => {
         customBox.hidden = draft.preset !== 'custom';
         const problem = draft.preset === 'custom' ? lookProblem(draft) : null;
         msg.textContent = problem || '';
-        useBtn.disabled = !!problem;
         const tokens = deriveLook(draft);
         Object.entries(tokens).forEach(([k, v]) => preview.style.setProperty(k, v)); // scoped to the preview only
       };
       const section = el('section', { class: 'sheet', id: 'lookSection' },
         el('h2', { class: 'sheet-title' }, 'Look'),
-        el('p', { class: 'muted' }, 'Pick colors for the kiosk. The preview changes as you choose; the kiosk changes when you click Use this look. Text colors are chosen for you so everything stays readable.'),
+        el('p', { class: 'muted' }, 'Pick colors for the kiosk. It changes as you choose. Text colors are chosen for you so everything stays readable.'),
         el('div', { class: 'look-layout' }, el('div', {}, cards, customBox, msg), preview),
-        el('div', { class: 'btn-row' }, useBtn, resetBtn));
+        el('div', { class: 'btn-row' }, resetBtn));
       draw();
       return section;
     },
@@ -3286,6 +3301,7 @@ const RosterImport = (() => {
       this.fillVoices(st.voice);
       const err = el('p', { class: 'form-error', role: 'alert' });
       const bad = msg => { err.textContent = msg; err.scrollIntoView({ block: 'center' }); return false; };
+      this.savedNote = el('p', { class: 'field-hint', 'aria-live': 'polite' }, 'Changes save as you make them.');
       const save = (quiet = false) => {
         const o = Number(overdue.value), a = Number(auto.value), w = Number(limit.value), lw = Number(lineWarn.value);
         if (!Number.isInteger(o) || o < 1 || o > 120) return bad('Long-trip flag must be 1 to 120 minutes.');
@@ -3297,10 +3313,13 @@ const RosterImport = (() => {
         mutate(s => {
           s.settings = { passLabel: cleanText(label.value, 40) || DEFAULTS.passLabel, overdueMin: o, autoCloseMin: a, weeklyLimit: w, lineWarnAt: lw, announce: chosen(), voice: this.voicePick.value, sound: this.soundPick.value, look: s.settings.look, idDisplay: s.settings.idDisplay, keyBeep: s.settings.keyBeep };
         });
-        if (!quiet) toast('Settings saved.');
+        if (!quiet) this.savedNote.textContent = `Saved at ${fmtTime(now())}.`;
         return true;
       };
       this.save = save;
+      // every field here saves the moment it changes (text and numbers when you leave the box)
+      [label, overdue, auto, limit, lineWarn, this.soundPick, this.voicePick].forEach(x => x.addEventListener('change', () => save()));
+      radios.addEventListener('change', () => save());
       add(c, 
         el('section', { class: 'sheet' },
           el('h2', { class: 'sheet-title' }, 'Kiosk'),
@@ -3319,7 +3338,7 @@ const RosterImport = (() => {
               .map(([v, label, sample]) => el('label', { class: 'radio' },
                 el('input', { type: 'radio', name: 'idDisplay', value: v, checked: v === st.idDisplay }), `${label}  `, el('span', { class: 'muted' }, sample)))),
             el('label', { class: 'check', style: 'margin-top:10px' }, el('input', { type: 'checkbox', id: 'keyBeep', checked: st.keyBeep }), 'Beep as digits are typed'),
-            el('p', { class: 'field-hint' }, 'These two apply right away; you don\u2019t need to save. Teacher PINs and codes always show as asterisks.')),
+            el('p', { class: 'field-hint' }, 'Teacher PINs and codes always show as asterisks.')),
           field('Name on the pass', label, 'Shown at the top of the pass, for example "Room 214 restroom pass".'),
           field('Flag a trip as long after (minutes)', overdue),
           field('Close a trip automatically after (minutes)', auto, 'If nobody signs back in, the trip is logged as "Not signed back in" and the pass goes to the next student. Spots in line expire after the same time.'),
@@ -3329,8 +3348,7 @@ const RosterImport = (() => {
             field('Sound', this.soundPick, 'Choosing a sound plays it. Alert sounds are loud, so try them at your classroom volume.'),
             field('Voice', this.voicePick), this.voiceNote,
             btn('Test sound', () => { ensureAudio(); announceWith(chosen(), 'Alex', this.voicePick.value, this.soundPick.value); }, 'small')),
-          err,
-          el('div', { class: 'btn-row' }, btn('Save settings', () => save(), 'primary'))),
+          err, this.savedNote),
         this.lookSection(),
         el('section', { class: 'sheet', id: 'overrideSection' },
           el('h2', { class: 'sheet-title' }, 'Teacher override'),
@@ -3478,7 +3496,7 @@ const RosterImport = (() => {
   // School rule: nobody leaves in the first or last N minutes of a scheduled class.
   // 'start': students may line up, but nobody is released until `until`.
   // 'end': the line is closed to new students; whoever is already in it still goes.
-  // A manual period has no hold: it starts whenever the teacher sets it.
+  // A temporary (manual) period has no hold: it starts whenever the teacher sets it.
   function holdState(s, t) {
     const sc = s.schedule;
     if (!sc.enabled || !sc.hold || auxOn(s, t)) return null;
@@ -3541,7 +3559,7 @@ const RosterImport = (() => {
     const dow = new Date(t).getDay();
     // A day saved on purpose as "no classes" is fine; a day with nothing saved is the problem.
     if (!own(sc.dates, fmtDate(t)) && !own(sc.weekly, String(dow)) && !manualNow) {
-      out.push(`Class schedules are on, but there are no periods saved for today (${DAYS[dow]}), so every new sign-out is paused. Choose a bell schedule for every school day on the Schedule tab, or use a manual period.`);
+      out.push(`Class schedules are on, but there are no periods saved for today (${DAYS[dow]}), so every new sign-out is paused. On the Schedule tab, save times for today, or use Run a different period for now.`);
     }
     const blank = [1, 2, 3, 4, 5].filter(d => d !== dow && !own(sc.weekly, String(d))).map(d => DAYS[d]);
     if (blank.length) {
@@ -3569,7 +3587,7 @@ const RosterImport = (() => {
       const hold = holdState(state, t);
       text = `Period ${cur.period} until ${fmtTimeNb(cur.end)}${cur.key.startsWith('manual:') ? ' (set by your teacher)' : ''}.` +
         (!hold ? '' : hold.kind === 'start' ? ` ${holdStartText(state, hold)} You can get in line now.`
-          : ` Queue Closed. ${holdEndText(state)}`);
+          : ` The line is closed. ${holdEndText(state)}`);
     } else if (on) {
       const next = nextPeriodToday(state, t);
       text = next ? `Between classes. Sign-outs open at ${fmtTimeNb(next.start)} for Period ${next.period}.`
@@ -3613,7 +3631,7 @@ const RosterImport = (() => {
           el('span', {}, el('span', { class: 'hold-end-label' }, label), el('span', { class: 'field-hint' }, hint))))));
       return el('div', { class: 'hold-box' },
         el('label', { class: 'check' }, toggle, 'Hold the first and last', minutes, 'minutes of each class'),
-        el('p', { class: 'field-hint' }, 'At the start of class, students can get in line but nobody leaves until the time is up; then the first student is called. Teacher override still works, and a manual period has no hold.'),
+        el('p', { class: 'field-hint' }, 'At the start of class, students can get in line but nobody leaves until the time is up; then the first student is called. Teacher override still works, and a temporary period has no hold.'),
         endChoice,
         err);
     },
@@ -3626,21 +3644,24 @@ const RosterImport = (() => {
       const manualPeriod = el('input', { class: 'field num', type: 'text', maxlength: 8, placeholder: 'Period' });
       const manualEnd = el('input', { class: 'field', type: 'time' });
       const manualError = el('p', { class: 'form-error', role: 'alert' });
-      add(c, el('section', { class: 'sheet' }, el('h2', { class: 'sheet-title' }, 'Automatic periods'), today, this.warnings,
-        el('label', { class: 'check' }, enabled, 'Enable class schedules'),
-        el('p', { class: 'field-hint' }, 'Uses this device’s local date and time. Only the current period can start a trip. Waiting spots are canceled at the bell; students already out can still return. Weekly limits remain teacher-only flags.'),
-        el('div', { class: 'controls', style: 'margin-top:12px' }, field('Manual period', manualPeriod), field('Override ends today at', manualEnd)),
-        el('div', { class: 'btn-row' }, btn('Use manual period', () => {
+      const todaySheet = el('section', { class: 'sheet', id: 'scheduleNow' }, el('h2', { class: 'sheet-title' }, 'Today'), today, this.warnings,
+        el('label', { class: 'check' }, enabled, 'Use class schedules'),
+        el('p', { class: 'field-hint' }, 'Only the class in session can sign out. Waiting spots are canceled at the bell; students already out can still sign back in. Uses this computer\u2019s date and time.'));
+      add(c, todaySheet);
+      add(todaySheet, el('details', { class: 'fold fold-sub' }, el('summary', {}, 'Run a different period for now'),
+        el('p', { class: 'muted' }, 'For a class that meets outside the bell schedule, such as a makeup or a swapped period. It ends on its own at the time you choose.'),
+        el('div', { class: 'controls', style: 'margin-top:12px' }, field('Period', manualPeriod), field('Until', manualEnd)),
+        el('div', { class: 'btn-row' }, btn('Start this period', () => {
           const end = clockMinute(manualEnd.value) == null ? null : atClock(now(), manualEnd.value);
           const period = periodValue(manualPeriod.value);
           if (!period || end == null || end <= now()) { manualError.textContent = 'Enter a period and a future end time today.'; return; }
           manualError.textContent = ''; enabled.checked = true;
           mutate((s, t) => { s.schedule.enabled = true; s.schedule.manual = { period, start: t, end }; });
-          toast('Manual period active until the selected time.');
-        }), btn('Resume automatic schedule', () => { mutate(s => { s.schedule.manual = null; }); toast('Automatic schedule resumed.'); })), manualError));
+          toast(`Period ${period} until ${fmtTime(end)}.`);
+        }), btn('Back to the bell schedule', () => { mutate(s => { s.schedule.manual = null; }); toast('Back to the bell schedule.'); })), manualError));
       this.week = el('div', { id: 'weekOverview' });
       add(c, el('section', { class: 'sheet', id: 'weekSection' }, el('h2', { class: 'sheet-title' }, 'Bell schedule for the week'),
-        el('p', { class: 'muted' }, 'Enter your school\u2019s bell times under Weekly schedules and special dates below: type one day\u2019s periods, save it, then copy it to Monday to Friday. Days with nothing saved pause new sign-outs while schedules are on.'),
+        el('p', { class: 'muted' }, 'Your school\u2019s bell times go in Edit the times for a weekday or a date, below. Type one day\u2019s periods, save, then copy them to Monday to Friday. Days with nothing saved pause new sign-outs while schedules are on.'),
         this.holdControls(), this.week));
       let mode = 'weekly', key = String(new Date().getDay());
       const body = el('div'), message = el('p', { class: 'form-error', role: 'alert' });
@@ -3709,10 +3730,12 @@ const RosterImport = (() => {
         el('p', { class: 'field-hint' }, 'CSV columns: Period, Start, End. Times can be 9:30 AM, 1:32 PM, or 24-hour like 13:32. The upload fills the rows above for review; nothing changes until you click Save schedule. Switching days discards unsaved edits.'),
         el('div', { class: 'btn-row' }, btn('Upload CSV', () => csv.click()), csv,
           btn('Download CSV template', () => download('class-schedule-template.csv', 'Period,Start,End\r\n1,09:30,10:20\r\n2,10:25,11:15\r\n', 'text/csv;charset=utf-8'))), message);
-      add(c, el('section', { class: 'sheet', id: 'dayEditor' }, el('h2', { class: 'sheet-title' }, 'Weekly schedules and special dates'), body));
       this.overrides = el('div');
-      this.selectDate = value => { mode = 'dates'; modeSelect.value = mode; date.value = value; key = value; load(); };
-      add(c, el('section', { class: 'sheet' }, el('h2', { class: 'sheet-title' }, 'Upcoming special dates'), this.overrides));
+      const editor = el('details', { class: 'sheet fold', id: 'dayEditor' }, el('summary', {}, 'Edit the times for a weekday or a date'),
+        body, el('h3', { class: 'sheet-sub', style: 'margin-top:18px' }, 'Upcoming special dates'), this.overrides);
+      add(c, editor);
+      if (!Object.keys(state.schedule.weekly).length || !state.setup.done) editor.open = true; // nothing set up yet, or the setup guide is here: this is where it starts
+      this.selectDate = value => { editor.open = true; mode = 'dates'; modeSelect.value = mode; date.value = value; key = value; load(); };
       load(); this.update();
     },
     update() {
@@ -3778,6 +3801,7 @@ const RosterImport = (() => {
       b.setAttribute('aria-selected', String(on));
       b.tabIndex = on ? 0 : -1;
     });
+    saveTypedSetting();
     const body = $('#tBody');
     body.setAttribute('aria-labelledby', 'tab-' + key);
     body.replaceChildren();
@@ -4245,7 +4269,7 @@ const RosterImport = (() => {
         return [true, 'Class schedules are on.' + (sc.hold ? ` Holding the first and last ${plural(sc.holdMin, 'minute', 'minutes')}.` : '')];
       } },
     { key: 'calling', tab: 'settings', targets: ['#callSettings'], title: 'Choose how students are called',
-      body: 'When the pass comes back, the kiosk plays a sound and says the next student\u2019s first name. Pick a sound and a voice and press Test sound. Next saves your choices.',
+      body: 'When the pass comes back, the kiosk plays a sound and says the next student\u2019s first name. Pick a sound and a voice and press Test sound. Your choices save as you make them.',
       leave: () => (currentTab === tabSettings ? tabSettings.save(true) : true) },
     { key: 'override', tab: 'settings', targets: ['#overrideSection'], title: 'Set an override code (optional)',
       body: 'Teacher override approves a student the kiosk would turn away, or moves someone to the front of the line. Your PIN works for that, but the student will be standing beside you as you type it. A separate override code approves overrides and nothing else.',
@@ -4552,7 +4576,7 @@ const RosterImport = (() => {
     $('#clockDate').textContent = fmtDayLong(t);
     updateTagTimer(t);
     updateScheduleStatus(t);
-    document.querySelectorAll('[data-since]').forEach(n => { n.textContent = fmtElapsed(t - Number(n.dataset.since)); });
+    document.querySelectorAll('[data-since]').forEach(n => { n.textContent = fmtOut(t - Number(n.dataset.since)); });
     document.querySelectorAll('[data-overdue-from]').forEach(n => { n.hidden = t - Number(n.dataset.overdueFrom) < state.settings.overdueMin * MIN; });
   }
 
