@@ -924,15 +924,18 @@ const RosterImport = (() => {
     const legacyCourse = generic ? '' : clean(m[1]); // how Beta v1 keyed it, so remembered periods still match
     return { key: `${course.toLowerCase()}#${num}`, legacyKey: `${legacyCourse.toLowerCase()}#${num}`, label: m[2], num, course, numbered: true, generic };
   }
+  // The digits of an ID with up to two letters dropped (LAUSD 201234X567, Texas S12345678), since the keypad has only digits. null: too many letters to be an ID.
+  const idDigits = v => { const s = String(v == null ? '' : v).replace(/\s/g, ''); return (s.match(/[a-z]/gi) || []).length <= 2 ? s.replace(/[a-z]/gi, '') : null; };
   // Student IDs: digits only. Excel sometimes stores long IDs in scientific notation, which loses digits for good.
   function readId(raw, maxLen = 10) {
     let s = clean(raw).replace(/\s/g, '');
     if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, '');
     if (!s) return { why: 'no student ID' };
     if (/^\d(\.\d+)?e\+\d+$/i.test(s)) return { why: 'ID was turned into scientific notation by Excel' };
-    if (!/^\d+$/.test(s)) return { why: 'ID isn\u2019t a number' };
-    if (s.length > maxLen) return { why: `ID is longer than ${maxLen} digits` };
-    return { id: s };
+    const d = idDigits(s);
+    if (!d || !/^\d+$/.test(d)) return { why: 'ID isn\u2019t a number' };
+    if (d.length > maxLen) return { why: `ID is longer than ${maxLen} digits` };
+    return { id: d, raw: s.toUpperCase() };
   }
   // "Last, First" when names come in two columns, the way the kiosk stores them.
   const joinName = (first, last) => clean(first && last ? `${last}, ${first}` : first || last || '');
@@ -972,7 +975,7 @@ const RosterImport = (() => {
     const sample = table.data.slice(0, 200);
     const share = (i, test) => { const vals = sample.map(r => r.cells[i]).filter(Boolean); return vals.length ? vals.filter(test).length / vals.length : 0; };
     const uniq = i => new Set(sample.map(r => r.cells[i]).filter(Boolean)).size;
-    const idCol = cols.find(h => share(h.i, v => /^\d{3,10}$/.test(v)) >= 0.8 && uniq(h.i) >= sample.length * 0.9);
+    const idCol = cols.find(h => share(h.i, v => /^\d{3,10}$/.test(idDigits(v))) >= 0.8 && uniq(h.i) >= sample.length * 0.9);
     if (kind === 'id') return idCol ? idCol.i : -1;
     if (kind === 'section') {
       // a section number is at most two digits after any text ("Civics - 07"); 1001 is an ID, not a section
@@ -986,7 +989,7 @@ const RosterImport = (() => {
     return -1;
   }
 
-  return { ImportError, clean, normKey, fold, decodeText, parseCsv, parseCsvRows, readXlsx, readTable, findHeader, makeTable, colLetter, distinct, byName, sectionOf, readId, joinName, guessColumn };
+  return { ImportError, clean, normKey, fold, decodeText, parseCsv, parseCsvRows, readXlsx, readTable, findHeader, makeTable, colLetter, distinct, byName, sectionOf, idDigits, readId, joinName, guessColumn };
 })();
 
 
@@ -3010,12 +3013,13 @@ const RosterImport = (() => {
       firstContent = false;
       const fields = (raw.includes('\t') ? raw.split('\t') : raw.split(',')).map(f => cleanText(f, 80)).filter(Boolean);
       let idIdx = -1;
-      fields.forEach((f, j) => { if (/^\d{1,10}$/.test(f) && (idIdx < 0 || f.length > fields[idIdx].length)) idIdx = j; });
+      const ids = fields.map(f => RosterImport.idDigits(f));
+      ids.forEach((d, j) => { if (/^\d{1,10}$/.test(d) && (idIdx < 0 || d.length > ids[idIdx].length)) idIdx = j; });
       if (idIdx < 0) {
         if (!(isFirst && /\b(id|name|student|period)\b/i.test(raw))) skipped.push({ line: lineNo, why: 'no ID number' }); // a header row is skipped quietly
         return;
       }
-      const id = fields[idIdx];
+      const id = ids[idIdx];
       let periodIdx = -1, period = '';
       for (let j = fields.length - 1; j >= 0; j--) {
         if (j === idIdx) continue;
@@ -3864,15 +3868,18 @@ const RosterImport = (() => {
 
     // Rows that can become students: a usable ID and a name. Row numbers are the spreadsheet's own.
     function usable(rows) {
-      const ok = [], skipped = [];
+      const ok = [], skipped = [], rawOf = new Map(), clash = new Set();
       for (const r of rows) {
         const idr = RosterImport.readId(r.cells[W.idCol], ID_MAX);
         if (idr.why) { skipped.push({ n: r.n, why: idr.why }); continue; }
         const name = cleanText(W.nameMode === 'one' ? r.cells[W.nameCol] : RosterImport.joinName(r.cells[W.firstCol], r.cells[W.lastCol]), 60);
         if (!name) { skipped.push({ n: r.n, why: 'no name' }); continue; }
+        if (rawOf.has(idr.id) && rawOf.get(idr.id) !== idr.raw) clash.add(idr.id); else rawOf.set(idr.id, idr.raw);
         ok.push({ r, id: idr.id, name });
       }
-      return { ok, skipped };
+      // e.g. 1234X5 and 1234Y5: both would type as 12345, so neither can sign in safely
+      ok.filter(x => clash.has(x.id)).forEach(x => skipped.push({ n: x.r.n, why: `ID ${x.id} matches another student once letters are dropped` }));
+      return { ok: ok.filter(x => !clash.has(x.id)), skipped };
     }
     const skippedText = (skipped, lead) => (skipped.length ? `${lead} ${plural(skipped.length, 'row', 'rows')}: ` +
       skipped.slice(0, 5).map(x => `row ${x.n} (${x.why})`).join(', ') + (skipped.length > 5 ? `, and ${skipped.length - 5} more` : '') + '.' : '');

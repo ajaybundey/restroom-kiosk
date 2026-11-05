@@ -53,11 +53,19 @@ Clearing Chrome's browsing data ("Cookies and other site data") erases the kiosk
 | `setup-video.mp4` | Teacher setup video, about 3½ minutes |
 | `student-guide.pdf` | One-page student guide, to print and post by the kiosk |
 | `student-video.mp4` | Student video, about 1 minute |
-| `tests/autosave_test.py` | Checks that Settings save on Lock and on a tab switch: `python3 tests/autosave_test.py` (needs Chrome) |
+| `tests/kiosk_test.py` | Checks student ID import and that Settings save on Lock and on a tab switch: `python3 tests/kiosk_test.py` (needs Chrome) |
 
 ## Bell schedule
 
 Nothing is built in. In Teacher view, open **Schedule**, then **Edit the times for a weekday or a date**. Type one day's periods and start and end times, or upload a CSV with Period, Start and End columns. Click **Save schedule**. Then click **Copy and save** with **Monday to Friday** selected. Any day that's different, such as an early-release Wednesday, or a single date like a testing day, can be edited on its own.
+
+## Student IDs
+
+Students type their ID on a number keypad, so IDs are numbers, up to 10 digits.
+
+- If your IDs have one or two letters, like `201234X567` (Los Angeles) or `S12345678` (a Texas S-number), the import drops the letters. Students type only the digits: `201234567`.
+- If two students' IDs match once the letters are dropped, both are skipped, and the import tells you which rows.
+- IDs longer than 10 digits, like Florida's `FL` state number, are skipped. Export your district's local student number instead.
 
 ## Student data
 
