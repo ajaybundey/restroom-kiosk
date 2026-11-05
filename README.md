@@ -14,7 +14,7 @@ Double-click `Restroom_Kiosk.html` to open it in a browser. It needs no install 
 |---|---|
 | `Restroom_Kiosk.html` | The kiosk |
 | `teacher-guide.docx` | Teacher guide: setup, step by step, and everyday use (Word) |
-| `setup-video.mp4` | Teacher setup video, about 3 minutes |
+| `setup-video.mp4` | Teacher setup video, about 3½ minutes |
 | `student-guide.pdf` | One-page student guide, to print and post by the kiosk |
 | `student-video.mp4` | Student video, about 1 minute |
 
